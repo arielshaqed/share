@@ -52,3 +52,35 @@ func getData1(w http.ResponseWriter, req *http.Request) error {
 
 	return nil
 }
+
+func sanitize2(s string) error {
+	s = filepath.Clean(s)
+	if !strings.HasPrefix(s, "/tmp/") {
+		return fmt.Errorf("BAD PATH")
+	}
+	return nil
+}
+
+func getData2(w http.ResponseWriter, req *http.Request) error {
+	p := string(req.URL.Query().Get("path")[0])
+	p = filepath.Join("/tmp/", p)
+
+	var err error
+
+	if err = sanitize2(p); err != nil {
+		return err
+	}
+
+	// p is now safe.
+
+	c, _ := os.ReadFile(p)
+	w.Write(c)
+
+	o, _ := os.Create(p)
+	if _, err := fmt.Fprintln(o, "Duly clobbered."); err != nil {
+		return err
+	}
+	_ = o.Close()
+
+	return nil
+}
